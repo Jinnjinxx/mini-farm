@@ -3,46 +3,99 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0b0f14"/>
-<title>미니 농사 9×9 (PWA)</title>
+<title>미니 농사 6×6</title>
 <style>
-  :root{--bg:#0b0f14;--panel:#121820;--panel-2:#18202a;--text:#e8eef6;--accent:#7bd88f;--accent-2:#74b9ff;--soil:#b08b67}
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0b0f14;
+    --panel:#121820;
+    --panel-2:#18202a;
+    --text:#e8eef6;
+    --soil:#b08b67;
+    /* 파란 액센트 (더 선명하게) */
+    --blue:#1e90ff;            /* 기본 */
+    --blue-strong:#0d6efd;     /* hover */
+    --blue-press:#0057d9;      /* active */
+    --blue-ring:#66b3ff55;     /* focus ring */
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color: transparent}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Apple SD 산돌고딕 Neo","Malgun Gothic",Segoe UI,Roboto,Noto Sans,sans-serif}
+
   .wrap{display:grid;grid-template-rows:auto 1fr auto;gap:10px;max-width:900px;margin:0 auto;padding:10px}
-  .topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #23303c;border-radius:14px;padding:10px;position:sticky;top:0;z-index:10}
+
+  .topbar{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid #23303c;border-radius:14px;padding:10px;position:sticky;top:0;z-index:10
+  }
   .pill{padding:8px 12px;border-radius:999px;background:#0c1218;border:1px solid #23303c;white-space:nowrap;font-size:14px}
   .grow{flex:1}
-  .btn{appearance:none;border:1px solid #2a3947;background:#0c1218;color:var(--text);padding:12px 14px;border-radius:12px;cursor:pointer;transition:transform .02s,opacity .2s;font-size:16px;line-height:1}
+
+  .btn{
+    appearance:none;border:1px solid #2a3947;background:#0c1218;color:var(--text);
+    padding:12px 14px;border-radius:12px;cursor:pointer;transition:transform .02s,opacity .2s, background .12s, box-shadow .12s, border-color .12s;
+    font-size:16px;line-height:1;text-align:center
+  }
   .btn:active{transform:translateY(1px)}
-  .btn-accent{background:var(--accent-2);color:#071223;border-color:#3a6ea5;font-weight:600}
-  .btn-house{background:var(--accent);color:#06230e;border-color:#2f7c50;font-weight:700}
+  /* 더 선명한 파란 버튼 */
+  .btn-accent{
+    background:var(--blue); color:#061225; border-color:#0b56a5; font-weight:700;
+    box-shadow:0 1px 0 #00000060, 0 0 0 0px transparent;
+  }
+  .btn-accent:hover{ background:var(--blue-strong) }
+  .btn-accent:active{
+    background:var(--blue-press); box-shadow: inset 0 2px 6px #00000055;
+  }
+  .btn-accent:focus-visible{
+    outline:none; box-shadow:0 0 0 3px var(--blue-ring);
+  }
+
+  .btn-house{
+    background:#7bd88f;color:#06230e;border-color:#2f7c50;font-weight:700
+  }
+
   .seed-select{display:flex;gap:10px;align-items:center;background:#0c1218;border:1px solid #23303c;border-radius:12px;padding:6px 10px}
   .seed-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;border:1px solid #2a3947;background:#0b0f14}
   .seed-item input{width:18px;height:18px}
   .seed-count{font-size:12px;color:#9fb0c2}
+
   .board-wrap{display:grid;grid-template-columns:1fr;gap:10px;min-height:0}
   .board{background:#0c1015;border:1px solid #23303c;border-radius:14px;padding:10px;display:grid;place-items:center}
-  .grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;width:min(96vw,640px);aspect-ratio:1/1;touch-action:manipulation}
-  .tile{border:1px solid #3a2f25;border-radius:6px;background:var(--soil);display:grid;place-items:center;user-select:none;cursor:pointer;transition:filter .15s,transform .02s;min-width:calc(96vw/9 - 5px);min-height:calc(96vw/9 - 5px)}
+
+  /* 6x6 그리드 */
+  .grid{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:6px;
+    width:min(96vw,520px);aspect-ratio:1/1;touch-action:manipulation
+  }
+  .tile{
+    border:1px solid #3a2f25;border-radius:8px;background:var(--soil);
+    display:grid;place-items:center;user-select:none;cursor:pointer;
+    transition:filter .15s,transform .02s;min-width:calc(96vw/6 - 6px);min-height:calc(96vw/6 - 6px)
+  }
   .tile:active{transform:translateY(1px)}
   .tile[data-state="empty"]{filter:saturate(.9) brightness(.95)}
   .tile[data-state="growing"]{filter:saturate(1.05)}
   .tile[data-state="ready"]{box-shadow:inset 0 0 0 2px rgba(255,255,255,.09),0 0 0 2px rgba(255,255,255,.03)}
+
   .legend{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #23303c;border-radius:14px;padding:12px}
   .legend h3{margin:0 0 8px 0;font-size:16px}
   .row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
   .dot{width:16px;height:16px;border-radius:4px;border:1px solid #0003}
   .dot.tomato{background:#e74c3c}.dot.potato{background:#d3a16b}
   .small{font-size:13px;color:#9fb0c2}
-  .shop{display:none;position:fixed;inset:0;backdrop-filter:blur(3px);background:rgba(0,0,0,.45);place-items:center;z-index:50}
-  .shop .card{background:#0f141a;border:1px solid #2f3945;border-radius:16px;padding:16px;max-width:420px;width:calc(100% - 24px)}
-  .shop .card h2{margin:0 0 12px 0;font-size:18px}
-  .shop .card .item{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:10px;border:1px dashed #2b3641;border-radius:12px}
-  .shop .card .item .name{display:flex;align-items:center;gap:10px}
-  .actions{display:flex;gap:8px;justify-content:space-between;margin-top:10px}
   .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0b0f14;border:1px solid #2a3440;border-radius:6px;padding:3px 7px}
+
+  /* 가판대 모달 */
+  .shop{display:none;position:fixed;inset:0;backdrop-filter:blur(3px);background:rgba(0,0,0,.45);place-items:center;z-index:50}
+  .shop .card{background:#0f141a;border:1px solid #2f3945;border-radius:16px;padding:16px;max-width:440px;width:calc(100% - 24px)}
+  .shop .card h2{margin:0 0 10px 0;font-size:18px}
+  .shop .status{
+    display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+    background:#0c1218;border:1px solid #23303c;border-radius:12px;padding:8px 10px;margin-bottom:10px
+  }
+  .status .badge{padding:6px 8px;border-radius:10px;background:#091018;border:1px solid #23303c;font-size:13px}
+  .shop .item{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:10px;border:1px dashed #2b3641;border-radius:12px}
+  .shop .item .name{display:flex;align-items:center;gap:10px}
+  .shop .counts{font-size:12px;color:#9fb0c2;margin-top:4px}
 </style>
 </head>
 <body>
@@ -50,7 +103,7 @@
     <div class="topbar">
       <div class="pill" id="day">Day 1</div>
       <div class="pill" id="money">$ 200</div>
-      <div class="seed-select" id="seedSelect">
+      <div class="seed-select">
         <label class="seed-item">
           <input type="radio" name="seed" value="tomato" id="radioTomato">
           <span>토마토</span>
@@ -69,105 +122,173 @@
 
     <div class="board-wrap">
       <div class="board">
-        <div id="grid" class="grid" aria-label="9x9 밭"></div>
+        <div id="grid" class="grid" aria-label="6x6 밭"></div>
       </div>
       <div class="legend">
         <h3>도움말</h3>
-        <div class="row"><span class="kbd">탭</span> 빈 칸 → **선택한 씨앗** 심기</div>
+        <div class="row"><span class="kbd">탭</span> 빈 칸 → 선택한 씨앗 심기</div>
         <div class="row"><span class="kbd">탭</span> 수확 상태 → 수확 &amp; 돈 획득</div>
-        <div class="row small">가판대에서 구매하면 씨앗 수가 늘어나고, 상단에서 **토마토/감자**를 선택 후 심습니다.</div>
+        <div class="row small">가판대에서 구매 → 위 라디오로 씨앗 선택 → 밭 탭</div>
       </div>
     </div>
   </div>
 
+  <!-- Shop Modal -->
   <div class="shop" id="shop">
     <div class="card">
       <h2>가판대</h2>
-      <div class="item">
-        <div class="name"><div class="dot tomato"></div><div><strong>토마토 씨앗</strong><div class="small">성장 3일 · 판매 $30</div></div></div>
-        <button class="btn" data-buy="tomato">구매 $10</button>
+      <!-- 현재 보유 현황 -->
+      <div class="status" id="shopStatus">
+        <div class="badge" id="shopMoney">보유 금액: $ 200</div>
+        <div class="badge" id="shopTomato">토마토 씨앗: 0개</div>
+        <div class="badge" id="shopPotato">감자 씨앗: 0개</div>
       </div>
+
       <div class="item">
-        <div class="name"><div class="dot potato"></div><div><strong>감자 씨앗</strong><div class="small">성장 5일 · 판매 $50</div></div></div>
-        <button class="btn" data-buy="potato">구매 $15</button>
+        <div class="name">
+          <div class="dot tomato"></div>
+          <div>
+            <strong>토마토 씨앗</strong>
+            <div class="small">성장 3일 · 판매 $30</div>
+            <div class="counts" id="shopTomatoInline">보유: 0개</div>
+          </div>
+        </div>
+        <button class="btn btn-accent" data-buy="tomato">구매 $10</button>
       </div>
-      <div class="actions">
+
+      <div class="item">
+        <div class="name">
+          <div class="dot potato"></div>
+          <div>
+            <strong>감자 씨앗</strong>
+            <div class="small">성장 5일 · 판매 $50</div>
+            <div class="counts" id="shopPotatoInline">보유: 0개</div>
+          </div>
+        </div>
+        <button class="btn btn-accent" data-buy="potato">구매 $15</button>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
         <button class="btn" id="btnCloseShop">닫기</button>
       </div>
     </div>
   </div>
 
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-}
-document.addEventListener('gesturestart', e => e.preventDefault());
+// ====== 데이터 ======
+const CROPS={
+  tomato:{id:'tomato',name:'Tomato',growDays:3,seedPrice:10,sellPrice:30,color:'#e74c3c'},
+  potato:{id:'potato',name:'Potato',growDays:5,seedPrice:15,sellPrice:50,color:'#d3a16b'}
+};
+let state={
+  day:1, money:200, selected:null,
+  seeds:{tomato:0,potato:0},
+  tiles:[]
+};
 
-// Data
-const CROPS={tomato:{id:'tomato',name:'Tomato',growDays:3,seedPrice:10,sellPrice:30,color:'#e74c3c'},potato:{id:'potato',name:'Potato',growDays:5,seedPrice:15,sellPrice:50,color:'#d3a16b'}};
-let state={day:1,money:200,selected:null,seeds:{tomato:0,potato:0},tiles:[]};
+// ====== 요소 ======
+const $day=document.getElementById('day');
+const $money=document.getElementById('money');
+const $grid=document.getElementById('grid');
+const $shop=document.getElementById('shop');
+const $btnShop=document.getElementById('btnShop');
+const $btnNext=document.getElementById('btnNext');
+const $btnCloseShop=document.getElementById('btnCloseShop');
 
-// Elements
-const $day=document.getElementById('day'),$money=document.getElementById('money'),$grid=document.getElementById('grid'),$shop=document.getElementById('shop'),$btnShop=document.getElementById('btnShop'),$btnNext=document.getElementById('btnNext'),$btnCloseShop=document.getElementById('btnCloseShop');
-const $radioTomato=document.getElementById('radioTomato'),$radioPotato=document.getElementById('radioPotato');
-const $countTomato=document.getElementById('countTomato'),$countPotato=document.getElementById('countPotato');
+const $radioTomato=document.getElementById('radioTomato');
+const $radioPotato=document.getElementById('radioPotato');
+const $countTomato=document.getElementById('countTomato');
+const $countPotato=document.getElementById('countPotato');
 
-// Init
+// Shop status elements
+const $shopMoney=document.getElementById('shopMoney');
+const $shopTomato=document.getElementById('shopTomato');
+const $shopPotato=document.getElementById('shopPotato');
+const $shopTomatoInline=document.getElementById('shopTomatoInline');
+const $shopPotatoInline=document.getElementById('shopPotatoInline');
+
+// ====== 초기화 (6x6=36 타일) ======
 function init(){
-  state.tiles=Array.from({length:81},()=>({cropId:null,grown:0,phase:'empty'}));
+  state.tiles=Array.from({length:36},()=>({cropId:null,grown:0,phase:'empty'}));
   const frag=document.createDocumentFragment();
-  for(let i=0;i<81;i++){
+  for(let i=0;i<36;i++){
     const tile=document.createElement('div');
     tile.className='tile'; tile.dataset.idx=i;
     applyTileStyle(tile,state.tiles[i]);
     tile.addEventListener('click', onTileTap, {passive:true});
     frag.appendChild(tile);
   }
-  $grid.appendChild(frag); 
+  $grid.appendChild(frag);
   refreshUI();
 }
 document.addEventListener('DOMContentLoaded', init);
 
-// UI
+// ====== UI 갱신 ======
 function refreshUI(){
   $day.textContent=`Day ${state.day}`;
   $money.textContent=`$ ${state.money}`;
   $countTomato.textContent = `${state.seeds.tomato}개`;
   $countPotato.textContent = `${state.seeds.potato}개`;
 
-  if(state.selected==='tomato'){ $radioTomato.checked = true; $radioPotato.checked=false; }
-  else if(state.selected==='potato'){ $radioPotato.checked = true; $radioTomato.checked=false; }
+  if(state.selected==='tomato'){ $radioTomato.checked=true; $radioPotato.checked=false; }
+  else if(state.selected==='potato'){ $radioPotato.checked=true; $radioTomato.checked=false; }
   else { $radioTomato.checked=false; $radioPotato.checked=false; }
+
+  // Shop 상태도 함께 갱신
+  updateShopUI();
+}
+function updateShopUI(){
+  if(!$shopMoney) return;
+  $shopMoney.textContent = `보유 금액: $ ${state.money}`;
+  $shopTomato.textContent = `토마토 씨앗: ${state.seeds.tomato}개`;
+  $shopPotato.textContent = `감자 씨앗: ${state.seeds.potato}개`;
+  $shopTomatoInline.textContent = `보유: ${state.seeds.tomato}개`;
+  $shopPotatoInline.textContent = `보유: ${state.seeds.potato}개`;
 }
 function tileEl(i){return $grid.children[i];}
 function applyTileStyle(el,data){
   el.dataset.state=data.phase;
-  if(data.phase==='empty'){el.style.background=getComputedStyle(document.documentElement).getPropertyValue('--soil');el.style.borderColor='#3a2f25'}
-  else if(data.phase==='growing'){el.style.background='linear-gradient(180deg, var(--soil) 0%, #6fbf73 100%)';el.style.borderColor='#2d4c33'}
-  else {const col=data.cropId==='tomato'?CROPS.tomato.color:CROPS.potato.color;el.style.background=col;el.style.borderColor='#00000055'}
+  if(data.phase==='empty'){
+    el.style.background=getComputedStyle(document.documentElement).getPropertyValue('--soil');
+    el.style.borderColor='#3a2f25';
+  } else if(data.phase==='growing'){
+    el.style.background='linear-gradient(180deg, var(--soil) 0%, #6fbf73 100%)';
+    el.style.borderColor='#2d4c33';
+  } else {
+    const col=data.cropId==='tomato'?CROPS.tomato.color:CROPS.potato.color;
+    el.style.background=col; el.style.borderColor='#00000055';
+  }
 }
 
-// Seed selection
+// ====== 씨앗 선택 ======
 $radioTomato.addEventListener('change', ()=> { if($radioTomato.checked) state.selected='tomato'; });
 $radioPotato.addEventListener('change', ()=> { if($radioPotato.checked) state.selected='potato'; });
 
-// Shop
-$btnShop.addEventListener('click',()=> $shop.style.display='grid');
+// ====== 가판대 ======
+$btnShop.addEventListener('click',()=>{ updateShopUI(); $shop.style.display='grid'; });
 if($btnCloseShop) $btnCloseShop.addEventListener('click',()=> $shop.style.display='none');
 $shop.addEventListener('click',(e)=>{
-  if(e.target===$shop) $shop.style.display='none';
+  if(e.target===$shop){ $shop.style.display='none'; return; }
   const btn=e.target.closest('[data-buy]'); if(!btn) return;
   const id=btn.getAttribute('data-buy'), crop=CROPS[id];
+  // 파란 눌림 효과를 애니메이션으로 한 번 더 강조
+  btn.animate([
+    {transform:'scale(1)', filter:'brightness(1)'},
+    {transform:'scale(0.98)', filter:'brightness(1.1)'},
+    {transform:'scale(1)', filter:'brightness(1)'}
+  ],{duration:160});
+
   if(state.money>=crop.seedPrice){
-    state.money-=crop.seedPrice;
-    state.seeds[id]++;
-    refreshUI();
+    state.money -= crop.seedPrice;
+    state.seeds[id] += 1;
+    refreshUI();       // 상단/가판대 모두 반영
   } else {
-    btn.animate([{transform:'scale(1)'},{transform:'scale(0.96)'},{transform:'scale(1)'}],{duration:150});
+    // 부족하면 빨간 흔들림
+    btn.animate([{transform:'translateX(0)'},{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'translateX(0)'}],{duration:200});
   }
 });
 
-// Next Day
+// ====== 다음날 ======
 $btnNext.addEventListener('click',()=>{
   state.day++;
   for(let i=0;i<state.tiles.length;i++){
@@ -181,7 +302,7 @@ $btnNext.addEventListener('click',()=>{
   refreshUI();
 });
 
-// Tile tap
+// ====== 타일 탭 ======
 function onTileTap(e){
   const idx=+e.currentTarget.dataset.idx, t=state.tiles[idx];
   if(t.phase==='empty'){
@@ -189,10 +310,13 @@ function onTileTap(e){
     if(state.seeds[state.selected]<=0) return;
     state.seeds[state.selected]--;
     t.cropId=state.selected; t.grown=0; t.phase='growing';
-    applyTileStyle(e.currentTarget,t); refreshUI();
+    applyTileStyle(e.currentTarget,t);
+    refreshUI();
   } else if(t.phase==='ready'){
     const crop=CROPS[t.cropId]; state.money+=crop.sellPrice;
-    t.cropId=null; t.grown=0; t.phase='empty'; applyTileStyle(e.currentTarget,t); refreshUI();
+    t.cropId=null; t.grown=0; t.phase='empty';
+    applyTileStyle(e.currentTarget,t);
+    refreshUI();
   }
 }
 </script>
