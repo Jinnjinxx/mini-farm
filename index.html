@@ -3,28 +3,27 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>미니 농사 6×6</title>
+<title>미니 농사 6×6 (이동 포함)</title>
 <style>
   :root{
     --bg:#0b0f14; --panel:#121820; --panel-2:#18202a; --text:#e8eef6; --soil:#b08b67;
     --blue:#1e90ff; --blue-strong:#0d6efd; --blue-press:#0057d9; --blue-ring:#66b3ff55;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+  html,body{
+    height:100%;margin:0;background:var(--bg);color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Apple SD 산돌고딕 Neo","Malgun Gothic",Segoe UI,Roboto,Noto Sans,sans-serif;
     -webkit-text-size-adjust:100%;
   }
   .wrap{display:grid;grid-template-rows:auto 1fr auto;gap:10px;max-width:900px;margin:0 auto;padding:10px}
-  .topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:linear-gradient(180deg,var(--panel),var(--panel-2));
-    border:1px solid #23303c;border-radius:14px;padding:10px;position:sticky;top:0;z-index:10}
+  .topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #23303c;border-radius:14px;padding:10px;position:sticky;top:0;z-index:10}
   .pill{padding:8px 12px;border-radius:999px;background:#0c1218;border:1px solid #23303c;white-space:nowrap;font-size:14px}
   .grow{flex:1}
 
   .btn{
     appearance:none;border:1px solid #2a3947;background:#0c1218;color:var(--text);
     padding:12px 14px;border-radius:12px;cursor:pointer;transition:transform .02s,opacity .2s,background .12s,box-shadow .12s,border-color .12s;
-    font-size:16px;line-height:1;text-align:center;
-    touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+    font-size:16px;line-height:1;text-align:center;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
   }
   .btn:active{transform:translateY(1px)}
   .btn-accent{background:var(--blue);color:#061225;border-color:#0b56a5;font-weight:700;box-shadow:0 1px 0 #00000060}
@@ -41,14 +40,29 @@
   .seed-icon{width:18px;height:18px;image-rendering:pixelated;object-fit:contain}
 
   .board-wrap{display:grid;grid-template-columns:1fr;gap:10px}
-  .board{background:#0c1015;border:1px solid #23303c;border-radius:14px;padding:10px;display:grid;place-items:center}
+  .board{
+    background:#0c1015;border:1px solid #23303c;border-radius:14px;padding:10px;display:grid;place-items:center;
+    position:relative; /* 캐릭터 오버레이 위한 기준 */
+  }
 
   /* 6x6 그리드 */
   .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;width:min(96vw,520px);aspect-ratio:1/1;touch-action:manipulation}
-  .tile{border:1px solid #3a2f25;border-radius:8px;background:var(--soil);display:grid;place-items:center;user-select:none;cursor:pointer;
-    transition:filter .15s,transform .02s;background-size:cover;background-position:center}
+  .tile{
+    border:1px solid #3a2f25;border-radius:8px;background:var(--soil);
+    display:grid;place-items:center;user-select:none;cursor:pointer;
+    transition:filter .15s,transform .02s;background-size:cover;background-position:center
+  }
   .tile:active{transform:translateY(1px)}
   .tile[data-state="ready"]{box-shadow:inset 0 0 0 2px rgba(255,255,255,.09),0 0 0 2px rgba(255,255,255,.03)}
+
+  /* 캐릭터(간단한 동그란 토큰) */
+  #player{
+    position:absolute; width:28px; height:28px; transform:translate(-50%,-100%); /* 발 위치를 기준으로 */
+    border-radius:50%;
+    background: radial-gradient(ellipse at 40% 35%, #ffd8b5 30%, #e7a87a 31%, #8ab4ff 65%); /* 얼굴+셔츠 느낌 */
+    border:2px solid #0a0f14; box-shadow:0 2px 6px rgba(0,0,0,.35);
+    pointer-events:none; z-index:5;
+  }
 
   .legend{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #23303c;border-radius:14px;padding:12px}
   .legend h3{margin:0 0 8px 0;font-size:16px}
@@ -73,7 +87,7 @@
       <div class="pill" id="day">Day 1</div>
       <div class="pill" id="money">$ 200</div>
 
-      <!-- 메인 화면 씨앗 선택에 아이콘 추가 -->
+      <!-- 메인 화면 씨앗 선택 (아이콘+텍스트) -->
       <div class="seed-select">
         <label class="seed-item">
           <input type="radio" name="seed" value="tomato" id="radioTomato">
@@ -95,14 +109,14 @@
     </div>
 
     <div class="board-wrap">
-      <div class="board">
+      <div class="board" id="board">
         <div id="grid" class="grid" aria-label="6x6 밭"></div>
+        <div id="player" style="left:50%; top:50%"></div> <!-- 캐릭터 -->
       </div>
       <div class="legend">
         <h3>도움말</h3>
-        <div class="row"><span class="kbd">탭</span> 빈 칸 → 선택한 씨앗 심기</div>
-        <div class="row"><span class="kbd">탭</span> 수확 상태 → 수확 &amp; 돈 획득</div>
-        <div class="row small">가판대에서 구매 → 위 라디오로 씨앗 선택 → 밭 탭</div>
+        <div class="row"><span class="kbd">탭</span> 타일 → 캐릭터가 이동해서 심기/수확</div>
+        <div class="row"><span class="kbd">라디오 선택</span> 토마토/감자 선택 후 심기</div>
       </div>
     </div>
   </div>
@@ -148,7 +162,7 @@
   </div>
 
 <script>
-// ====== iOS 더블탭 줌 방지(버튼·빠른 연속 탭) ======
+// ====== iOS 더블탭 줌 방지 ======
 let lastTouchEnd = 0;
 document.addEventListener('touchend', function(e){
   const now = Date.now();
@@ -171,10 +185,22 @@ const $radioTomato=document.getElementById('radioTomato'),$radioPotato=document.
 const $shopMoney=document.getElementById('shopMoney'),$shopTomato=document.getElementById('shopTomato'),
       $shopPotato=document.getElementById('shopPotato'),$shopTomatoInline=document.getElementById('shopTomatoInline'),
       $shopPotatoInline=document.getElementById('shopPotatoInline');
+const $player=document.getElementById('player'), $board=document.getElementById('board');
+
+// ====== 캐릭터 이동 상태 ======
+const player = {
+  x: 0, y: 0,               // 보드 좌표(px)
+  tx: 0, ty: 0,             // 타겟 좌표(px)
+  speed: 240,               // px/s
+  moving: false
+};
+let pendingAction = null;    // {type:'plant'|'harvest', idx}
+const ARRIVE_DIST = 20;      // 도착 판정 거리(px)
 
 // ====== 초기화 (6×6) ======
 function init(){
   state.tiles=Array.from({length:36},()=>({cropId:null,grown:0,phase:'empty'}));
+
   const frag=document.createDocumentFragment();
   for(let i=0;i<36;i++){
     const tile=document.createElement('div');
@@ -184,11 +210,22 @@ function init(){
     frag.appendChild(tile);
   }
   $grid.appendChild(frag);
+
+  // 플레이어 초기 위치: 그리드 중앙 아래쪽
+  const gRect = $grid.getBoundingClientRect();
+  const bRect = $board.getBoundingClientRect();
+  const cx = (gRect.left + gRect.right)/2 - bRect.left;
+  const cy = gRect.bottom - bRect.top;  // 밭 아래쪽
+  player.x = cx; player.y = cy;
+  player.tx = cx; player.ty = cy;
+  placePlayer();
+
   refreshUI();
+  requestAnimationFrame(loop);
 }
 document.addEventListener('DOMContentLoaded', init);
 
-// ====== UI 갱신 ======
+// ====== UI ======
 function refreshUI(){
   $day.textContent=`Day ${state.day}`;
   $money.textContent=`$ ${state.money}`;
@@ -217,10 +254,10 @@ function applyTileStyle(el,data){
     el.style.backgroundImage='none';
     el.style.backgroundColor=getComputedStyle(document.documentElement).getPropertyValue('--soil');
   } else if(data.phase==='growing'){
-    el.style.backgroundImage='url("IMG_4638.png")';   // 그로잉
+    el.style.backgroundImage='url("IMG_4638.png")'; // 그로잉
     el.style.backgroundColor='#6b8f4e';
   } else if(data.phase==='ready'){
-    const img=CROPS[data.cropId].img;                 // 토마토/감자
+    const img=CROPS[data.cropId].img;               // 토마토/감자
     el.style.backgroundImage=`url("${img}")`;
     el.style.backgroundColor='transparent';
   }
@@ -237,10 +274,7 @@ $shop.addEventListener('click',(e)=>{
   if(e.target===$shop){ $shop.style.display='none'; return; }
   const btn=e.target.closest('[data-buy]'); if(!btn) return;
   const id=btn.getAttribute('data-buy'), crop=CROPS[id];
-
-  // 눌림 애니메이션
   btn.animate([{transform:'scale(1)'},{transform:'scale(0.98)'},{transform:'scale(1)'}],{duration:160});
-
   if(state.money>=crop.seedPrice){
     state.money -= crop.seedPrice;
     state.seeds[id] += 1;
@@ -263,22 +297,95 @@ $btnNext.addEventListener('click',()=>{
   refreshUI();
 });
 
-// ====== 타일 탭 ======
+// ====== 캐릭터 이동 루프 ======
+let lastTs = performance.now();
+function loop(ts){
+  const dt = Math.min(0.05, (ts - lastTs)/1000); // clamp
+  lastTs = ts;
+
+  // 이동 처리
+  const dx = player.tx - player.x;
+  const dy = player.ty - player.y;
+  const dist = Math.hypot(dx, dy);
+  if(dist > 0.5){
+    player.moving = true;
+    const step = Math.min(dist, player.speed * dt);
+    player.x += dx/dist * step;
+    player.y += dy/dist * step;
+    placePlayer();
+    // 도착 판정 & 대기 액션 처리
+    if(dist <= ARRIVE_DIST && pendingAction){
+      performPendingAction();
+      pendingAction = null;
+    }
+  } else {
+    player.moving = false;
+    if(pendingAction){ performPendingAction(); pendingAction = null; }
+  }
+
+  requestAnimationFrame(loop);
+}
+function placePlayer(){
+  // board 내부 좌표(px)를 absolute 위치로
+  $player.style.left = `${player.x}px`;
+  $player.style.top  = `${player.y}px`;
+}
+
+// 타일 중심 좌표(보드 기준 px)
+function tileCenterPx(tileEl){
+  const tr = tileEl.getBoundingClientRect();
+  const br = $board.getBoundingClientRect();
+  return { x: tr.left - br.left + tr.width/2, y: tr.top - br.top + tr.height/2 };
+}
+
+// ====== 타일 탭: 이동 후 자동 심기/수확 ======
 function onTileTap(e){
   const idx=+e.currentTarget.dataset.idx, t=state.tiles[idx];
+  const center = tileCenterPx(e.currentTarget);
+  // 플레이어 목표: 중심 약간 위(겹침 방지)
+  player.tx = center.x;
+  player.ty = center.y + 6;
+
   if(t.phase==='empty'){
-    if(!state.selected) return;
-    if(state.seeds[state.selected]<=0) return;
-    state.seeds[state.selected]--;
-    t.cropId=state.selected; t.grown=0; t.phase='growing';
-    applyTileStyle(e.currentTarget,t);
-    refreshUI();
+    // 심기 조건 확인
+    if(!state.selected || state.seeds[state.selected]<=0) return;
+    // 도달했으면 바로 심고, 아니면 대기 액션으로 등록
+    if(distancePlayerTo(center) <= ARRIVE_DIST) {
+      plantAt(idx, e.currentTarget);
+    } else {
+      pendingAction = { type:'plant', idx };
+    }
   } else if(t.phase==='ready'){
-    const crop=CROPS[t.cropId]; state.money+=crop.sellPrice;
-    t.cropId=null; t.grown=0; t.phase='empty';
-    applyTileStyle(e.currentTarget,t);
-    refreshUI();
+    if(distancePlayerTo(center) <= ARRIVE_DIST) {
+      harvestAt(idx, e.currentTarget);
+    } else {
+      pendingAction = { type:'harvest', idx };
+    }
   }
+}
+function distancePlayerTo(pt){ return Math.hypot(player.x - pt.x, player.y - pt.y); }
+
+function plantAt(idx, el){
+  const t=state.tiles[idx];
+  if(t.phase!=='empty') return;
+  if(!state.selected || state.seeds[state.selected]<=0) return;
+  state.seeds[state.selected]--;
+  t.cropId=state.selected; t.grown=0; t.phase='growing';
+  applyTileStyle(el,t); refreshUI();
+}
+function harvestAt(idx, el){
+  const t=state.tiles[idx];
+  if(t.phase!=='ready') return;
+  const crop=CROPS[t.cropId];
+  state.money += crop.sellPrice;
+  t.cropId=null; t.grown=0; t.phase='empty';
+  applyTileStyle(el,t); refreshUI();
+}
+function performPendingAction(){
+  if(!pendingAction) return;
+  const el = tileEl(pendingAction.idx);
+  if(pendingAction.type==='plant') plantAt(pendingAction.idx, el);
+  else if(pendingAction.type==='harvest') harvestAt(pendingAction.idx, el);
 }
 </script>
 </body>
