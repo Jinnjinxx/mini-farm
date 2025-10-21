@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>미니 농사 6×6 (이동 포함)</title>
+<title>미니 농사 6×6 + 인벤토리</title>
 <style>
   :root{
     --bg:#0b0f14; --panel:#121820; --panel-2:#18202a; --text:#e8eef6; --soil:#b08b67;
     --blue:#1e90ff; --blue-strong:#0d6efd; --blue-press:#0057d9; --blue-ring:#66b3ff55;
+    --slot:#0c1218; --slot-border:#2a3947; --slot-sel:#66b3ff66;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{
@@ -16,7 +17,11 @@
     -webkit-text-size-adjust:100%;
   }
   .wrap{display:grid;grid-template-rows:auto 1fr auto;gap:10px;max-width:900px;margin:0 auto;padding:10px}
-  .topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #23303c;border-radius:14px;padding:10px;position:sticky;top:0;z-index:10}
+  .topbar{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid #23303c;border-radius:14px;padding:10px;position:sticky;top:0;z-index:10
+  }
   .pill{padding:8px 12px;border-radius:999px;background:#0c1218;border:1px solid #23303c;white-space:nowrap;font-size:14px}
   .grow{flex:1}
 
@@ -32,18 +37,8 @@
   .btn-accent:focus-visible{outline:none;box-shadow:0 0 0 3px var(--blue-ring)}
   .btn-house{background:#7bd88f;color:#06230e;border-color:#2f7c50;font-weight:700}
 
-  /* 메인 화면 씨앗 선택 (아이콘+텍스트) */
-  .seed-select{display:flex;gap:10px;align-items:center;background:#0c1218;border:1px solid #23303c;border-radius:12px;padding:6px 10px}
-  .seed-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;border:1px solid #2a3947;background:#0b0f14}
-  .seed-item input{width:18px;height:18px}
-  .seed-count{font-size:12px;color:#9fb0c2}
-  .seed-icon{width:18px;height:18px;image-rendering:pixelated;object-fit:contain}
-
   .board-wrap{display:grid;grid-template-columns:1fr;gap:10px}
-  .board{
-    background:#0c1015;border:1px solid #23303c;border-radius:14px;padding:10px;display:grid;place-items:center;
-    position:relative; /* 캐릭터 오버레이 위한 기준 */
-  }
+  .board{background:#0c1015;border:1px solid #23303c;border-radius:14px;padding:10px;display:grid;place-items:center;position:relative}
 
   /* 6x6 그리드 */
   .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;width:min(96vw,520px);aspect-ratio:1/1;touch-action:manipulation}
@@ -55,13 +50,11 @@
   .tile:active{transform:translateY(1px)}
   .tile[data-state="ready"]{box-shadow:inset 0 0 0 2px rgba(255,255,255,.09),0 0 0 2px rgba(255,255,255,.03)}
 
-  /* 캐릭터(간단한 동그란 토큰) */
+  /* 캐릭터 */
   #player{
-    position:absolute; width:28px; height:28px; transform:translate(-50%,-100%); /* 발 위치를 기준으로 */
-    border-radius:50%;
-    background: radial-gradient(ellipse at 40% 35%, #ffd8b5 30%, #e7a87a 31%, #8ab4ff 65%); /* 얼굴+셔츠 느낌 */
-    border:2px solid #0a0f14; box-shadow:0 2px 6px rgba(0,0,0,.35);
-    pointer-events:none; z-index:5;
+    position:absolute; width:28px; height:28px; transform:translate(-50%,-100%);
+    border-radius:50%; background: radial-gradient(ellipse at 40% 35%, #ffd8b5 30%, #e7a87a 31%, #8ab4ff 65%);
+    border:2px solid #0a0f14; box-shadow:0 2px 6px rgba(0,0,0,.35); pointer-events:none; z-index:5;
   }
 
   .legend{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #23303c;border-radius:14px;padding:12px}
@@ -70,7 +63,33 @@
   .small{font-size:13px;color:#9fb0c2}
   .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0b0f14;border:1px solid #2a3440;border-radius:6px;padding:3px 7px}
 
-  /* 가판대 모달 (아이콘 추가) */
+  /* ─── 인벤토리 모달 ─── */
+  .inventory{display:none;position:fixed;inset:0;backdrop-filter:blur(3px);background:rgba(0,0,0,.45);place-items:center;z-index:60}
+  .inventory .card{background:#0f141a;border:1px solid #2f3945;border-radius:16px;padding:16px;max-width:520px;width:calc(100% - 24px)}
+  .inventory h2{margin:0 0 12px 0;font-size:18px}
+  .inventory-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:96px;gap:10px;
+  }
+  .slot{
+    position:relative; border:1px solid var(--slot-border); border-radius:12px; background:var(--slot);
+    display:grid;place-items:center; overflow:hidden;
+  }
+  .slot.selected{ outline:3px solid var(--slot-sel) }
+  .slot img{ width:62px; height:62px; image-rendering:pixelated; object-fit:contain; pointer-events:none }
+  .slot .label{position:absolute;left:8px;top:6px;font-size:12px;color:#9fb0c2}
+  .slot .count{
+    position:absolute; right:4px; bottom:2px; font-weight:800; font-size:14px; color:#ffffff;
+    /* 2px 아웃라인: 웹킷 스트로크 + 멀티 섀도우 */
+    -webkit-text-stroke:2px #000;
+    text-shadow:
+      1px 0 #000, -1px 0 #000, 0 1px #000, 0 -1px #000,
+      1px 1px #000, -1px 1px #000, 1px -1px #000, -1px -1px #000,
+      2px 0 #000, -2px 0 #000, 0 2px #000, 0 -2px #000,
+      2px 1px #000, -2px 1px #000, 2px -1px #000, -2px -1px #000,
+      1px 2px #000, -1px 2px #000, 1px -2px #000, -1px -2px #000;
+  }
+
+  /* 가판대 모달 */
   .shop{display:none;position:fixed;inset:0;backdrop-filter:blur(3px);background:rgba(0,0,0,.45);place-items:center;z-index:50}
   .shop .card{background:#0f141a;border:1px solid #2f3945;border-radius:16px;padding:16px;max-width:460px;width:calc(100% - 24px)}
   .shop .status{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#0c1218;border:1px solid #23303c;border-radius:12px;padding:8px 10px;margin-bottom:10px}
@@ -86,24 +105,9 @@
     <div class="topbar">
       <div class="pill" id="day">Day 1</div>
       <div class="pill" id="money">$ 200</div>
-
-      <!-- 메인 화면 씨앗 선택 (아이콘+텍스트) -->
-      <div class="seed-select">
-        <label class="seed-item">
-          <input type="radio" name="seed" value="tomato" id="radioTomato">
-          <img src="IMG_4636.png" alt="토마토" class="seed-icon">
-          <span>토마토</span>
-          <span class="seed-count" id="countTomato">0개</span>
-        </label>
-        <label class="seed-item">
-          <input type="radio" name="seed" value="potato" id="radioPotato">
-          <img src="IMG_4637.png" alt="감자" class="seed-icon">
-          <span>감자</span>
-          <span class="seed-count" id="countPotato">0개</span>
-        </label>
-      </div>
-
+      <div class="pill" id="selectedPill">선택: 없음</div>
       <div class="grow"></div>
+      <button class="btn" id="btnInventory">🎒 인벤토리</button>
       <button class="btn btn-accent" id="btnShop">가판대</button>
       <button class="btn btn-house" id="btnNext">🏠 다음날</button>
     </div>
@@ -111,12 +115,41 @@
     <div class="board-wrap">
       <div class="board" id="board">
         <div id="grid" class="grid" aria-label="6x6 밭"></div>
-        <div id="player" style="left:50%; top:50%"></div> <!-- 캐릭터 -->
+        <div id="player" style="left:50%; top:50%"></div>
       </div>
       <div class="legend">
         <h3>도움말</h3>
         <div class="row"><span class="kbd">탭</span> 타일 → 캐릭터가 이동해서 심기/수확</div>
-        <div class="row"><span class="kbd">라디오 선택</span> 토마토/감자 선택 후 심기</div>
+        <div class="row small">씨앗 선택은 상단 **인벤토리(🎒)** 에서 아이콘 탭</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 인벤토리 -->
+  <div class="inventory" id="inventory">
+    <div class="card">
+      <h2>인벤토리 (4×2)</h2>
+      <div class="inventory-grid">
+        <!-- 8칸: 1 토마토, 1 감자, 6 빈칸 (원하면 확장해도 됨) -->
+        <button class="slot" data-item="tomato" id="slotTomato" title="토마토">
+          <span class="label">토마토</span>
+          <img src="IMG_4636.png" alt="토마토">
+          <span class="count" id="invTomatoCnt">0</span>
+        </button>
+        <button class="slot" data-item="potato" id="slotPotato" title="감자">
+          <span class="label">감자</span>
+          <img src="IMG_4637.png" alt="감자">
+          <span class="count" id="invPotatoCnt">0</span>
+        </button>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+        <button class="btn" id="btnCloseInventory">닫기</button>
       </div>
     </div>
   </div>
@@ -130,7 +163,6 @@
         <div class="badge" id="shopTomato">토마토 씨앗: 0개</div>
         <div class="badge" id="shopPotato">감자 씨앗: 0개</div>
       </div>
-
       <div class="item">
         <div class="name">
           <img src="IMG_4636.png" class="icon" alt="토마토">
@@ -142,7 +174,6 @@
         </div>
         <button class="btn btn-accent" data-buy="tomato">구매 $10</button>
       </div>
-
       <div class="item">
         <div class="name">
           <img src="IMG_4637.png" class="icon" alt="감자">
@@ -154,7 +185,6 @@
         </div>
         <button class="btn btn-accent" data-buy="potato">구매 $15</button>
       </div>
-
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
         <button class="btn" id="btnCloseShop">닫기</button>
       </div>
@@ -178,24 +208,19 @@ const CROPS = {
 let state={day:1,money:200,selected:null,seeds:{tomato:0,potato:0},tiles:[]};
 
 // ====== 요소 ======
-const $day=document.getElementById('day'),$money=document.getElementById('money'),$grid=document.getElementById('grid'),
-      $shop=document.getElementById('shop'),$btnShop=document.getElementById('btnShop'),$btnNext=document.getElementById('btnNext'),$btnCloseShop=document.getElementById('btnCloseShop');
-const $radioTomato=document.getElementById('radioTomato'),$radioPotato=document.getElementById('radioPotato'),
-      $countTomato=document.getElementById('countTomato'),$countPotato=document.getElementById('countPotato');
-const $shopMoney=document.getElementById('shopMoney'),$shopTomato=document.getElementById('shopTomato'),
-      $shopPotato=document.getElementById('shopPotato'),$shopTomatoInline=document.getElementById('shopTomatoInline'),
-      $shopPotatoInline=document.getElementById('shopPotatoInline');
-const $player=document.getElementById('player'), $board=document.getElementById('board');
+const $day=document.getElementById('day'),$money=document.getElementById('money'),$selectedPill=document.getElementById('selectedPill');
+const $grid=document.getElementById('grid'),$board=document.getElementById('board'),$player=document.getElementById('player');
+const $btnInventory=document.getElementById('btnInventory'),$inventory=document.getElementById('inventory'),
+      $btnCloseInventory=document.getElementById('btnCloseInventory'),$slotTomato=document.getElementById('slotTomato'),$slotPotato=document.getElementById('slotPotato'),
+      $invTomatoCnt=document.getElementById('invTomatoCnt'),$invPotatoCnt=document.getElementById('invPotatoCnt');
+const $shop=document.getElementById('shop'),$btnShop=document.getElementById('btnShop'),$btnNext=document.getElementById('btnNext'),$btnCloseShop=document.getElementById('btnCloseShop');
+const $shopMoney=document.getElementById('shopMoney'),$shopTomato=document.getElementById('shopTomato'),$shopPotato=document.getElementById('shopPotato'),
+      $shopTomatoInline=document.getElementById('shopTomatoInline'),$shopPotatoInline=document.getElementById('shopPotatoInline');
 
 // ====== 캐릭터 이동 상태 ======
-const player = {
-  x: 0, y: 0,               // 보드 좌표(px)
-  tx: 0, ty: 0,             // 타겟 좌표(px)
-  speed: 240,               // px/s
-  moving: false
-};
+const player = { x:0,y:0, tx:0,ty:0, speed:240, moving:false };
 let pendingAction = null;    // {type:'plant'|'harvest', idx}
-const ARRIVE_DIST = 20;      // 도착 판정 거리(px)
+const ARRIVE_DIST = 20;
 
 // ====== 초기화 (6×6) ======
 function init(){
@@ -211,13 +236,12 @@ function init(){
   }
   $grid.appendChild(frag);
 
-  // 플레이어 초기 위치: 그리드 중앙 아래쪽
+  // 플레이어 초기 위치
   const gRect = $grid.getBoundingClientRect();
   const bRect = $board.getBoundingClientRect();
   const cx = (gRect.left + gRect.right)/2 - bRect.left;
-  const cy = gRect.bottom - bRect.top;  // 밭 아래쪽
-  player.x = cx; player.y = cy;
-  player.tx = cx; player.ty = cy;
+  const cy = gRect.bottom - bRect.top;
+  player.x = cx; player.y = cy; player.tx = cx; player.ty = cy;
   placePlayer();
 
   refreshUI();
@@ -229,13 +253,20 @@ document.addEventListener('DOMContentLoaded', init);
 function refreshUI(){
   $day.textContent=`Day ${state.day}`;
   $money.textContent=`$ ${state.money}`;
-  $countTomato.textContent = `${state.seeds.tomato}개`;
-  $countPotato.textContent = `${state.seeds.potato}개`;
 
-  if(state.selected==='tomato'){ $radioTomato.checked=true; $radioPotato.checked=false; }
-  else if(state.selected==='potato'){ $radioPotato.checked=true; $radioTomato.checked=false; }
-  else { $radioTomato.checked=false; $radioPotato.checked=false; }
+  // 선택 표시
+  const selName = state.selected ? (state.selected==='tomato'?'토마토':'감자') : '없음';
+  $selectedPill.textContent = `선택: ${selName}`;
 
+  // 인벤토리 수량
+  $invTomatoCnt.textContent = state.seeds.tomato;
+  $invPotatoCnt.textContent = state.seeds.potato;
+
+  // 슬롯 선택 하이라이트
+  $slotTomato.classList.toggle('selected', state.selected==='tomato');
+  $slotPotato.classList.toggle('selected', state.selected==='potato');
+
+  // 가판대 배지/인라인
   updateShopUI();
 }
 function updateShopUI(){
@@ -245,7 +276,6 @@ function updateShopUI(){
   $shopTomatoInline.textContent=`보유: ${state.seeds.tomato}개`;
   $shopPotatoInline.textContent=`보유: ${state.seeds.potato}개`;
 }
-function tileEl(i){return $grid.children[i];}
 function applyTileStyle(el,data){
   el.dataset.state=data.phase;
   el.style.backgroundSize='cover';
@@ -254,22 +284,28 @@ function applyTileStyle(el,data){
     el.style.backgroundImage='none';
     el.style.backgroundColor=getComputedStyle(document.documentElement).getPropertyValue('--soil');
   } else if(data.phase==='growing'){
-    el.style.backgroundImage='url("IMG_4638.png")'; // 그로잉
+    el.style.backgroundImage='url("IMG_4638.png")';
     el.style.backgroundColor='#6b8f4e';
   } else if(data.phase==='ready'){
-    const img=CROPS[data.cropId].img;               // 토마토/감자
+    const img=CROPS[data.cropId].img;
     el.style.backgroundImage=`url("${img}")`;
     el.style.backgroundColor='transparent';
   }
 }
+function tileEl(i){ return $grid.children[i]; }
 
-// ====== 선택/가판대/다음날 ======
-$radioTomato.addEventListener('change', ()=> { if($radioTomato.checked) state.selected='tomato'; });
-$radioPotato.addEventListener('change', ()=> { if($radioPotato.checked) state.selected='potato'; });
+// ====== 인벤토리 열기/선택 ======
+$btnInventory.addEventListener('click',()=>{ $inventory.style.display='grid'; });
+$btnCloseInventory.addEventListener('click',()=>{ $inventory.style.display='none'; });
+// 배경 탭으로 닫기
+$inventory.addEventListener('click',(e)=>{ if(e.target===$inventory) $inventory.style.display='none'; });
+// 슬롯 클릭으로 선택
+$slotTomato.addEventListener('click',()=>{ state.selected='tomato'; $inventory.style.display='none'; refreshUI(); });
+$slotPotato.addEventListener('click',()=>{ state.selected='potato'; $inventory.style.display='none'; refreshUI(); });
 
+// ====== 가판대 ======
 $btnShop.addEventListener('click',()=>{ updateShopUI(); $shop.style.display='grid'; });
-if($btnCloseShop) $btnCloseShop.addEventListener('click',()=> $shop.style.display='none');
-
+$btnCloseShop.addEventListener('click',()=> $shop.style.display='none');
 $shop.addEventListener('click',(e)=>{
   if(e.target===$shop){ $shop.style.display='none'; return; }
   const btn=e.target.closest('[data-buy]'); if(!btn) return;
@@ -278,12 +314,13 @@ $shop.addEventListener('click',(e)=>{
   if(state.money>=crop.seedPrice){
     state.money -= crop.seedPrice;
     state.seeds[id] += 1;
-    refreshUI();
+    refreshUI();          // 인벤토리 숫자/가판대 동기화
   } else {
     btn.animate([{transform:'translateX(0)'},{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'translateX(0)'}],{duration:200});
   }
 });
 
+// ====== 다음날 ======
 $btnNext.addEventListener('click',()=>{
   state.day++;
   for(let i=0;i<state.tiles.length;i++){
@@ -300,71 +337,52 @@ $btnNext.addEventListener('click',()=>{
 // ====== 캐릭터 이동 루프 ======
 let lastTs = performance.now();
 function loop(ts){
-  const dt = Math.min(0.05, (ts - lastTs)/1000); // clamp
+  const dt = Math.min(0.05, (ts - lastTs)/1000);
   lastTs = ts;
 
-  // 이동 처리
   const dx = player.tx - player.x;
   const dy = player.ty - player.y;
   const dist = Math.hypot(dx, dy);
+
   if(dist > 0.5){
     player.moving = true;
     const step = Math.min(dist, player.speed * dt);
     player.x += dx/dist * step;
     player.y += dy/dist * step;
     placePlayer();
-    // 도착 판정 & 대기 액션 처리
     if(dist <= ARRIVE_DIST && pendingAction){
       performPendingAction();
       pendingAction = null;
     }
-  } else {
+  }else{
     player.moving = false;
     if(pendingAction){ performPendingAction(); pendingAction = null; }
   }
-
   requestAnimationFrame(loop);
 }
-function placePlayer(){
-  // board 내부 좌표(px)를 absolute 위치로
-  $player.style.left = `${player.x}px`;
-  $player.style.top  = `${player.y}px`;
-}
-
-// 타일 중심 좌표(보드 기준 px)
-function tileCenterPx(tileEl){
-  const tr = tileEl.getBoundingClientRect();
+function placePlayer(){ $player.style.left=`${player.x}px`; $player.style.top=`${player.y}px`; }
+function tileCenterPx(tile){
+  const tr = tile.getBoundingClientRect();
   const br = $board.getBoundingClientRect();
   return { x: tr.left - br.left + tr.width/2, y: tr.top - br.top + tr.height/2 };
 }
+function distancePlayerTo(pt){ return Math.hypot(player.x - pt.x, player.y - pt.y); }
 
-// ====== 타일 탭: 이동 후 자동 심기/수확 ======
+// ====== 타일 탭: 이동 → 심기/수확 ======
 function onTileTap(e){
   const idx=+e.currentTarget.dataset.idx, t=state.tiles[idx];
   const center = tileCenterPx(e.currentTarget);
-  // 플레이어 목표: 중심 약간 위(겹침 방지)
-  player.tx = center.x;
-  player.ty = center.y + 6;
+  player.tx = center.x; player.ty = center.y + 6;
 
   if(t.phase==='empty'){
-    // 심기 조건 확인
     if(!state.selected || state.seeds[state.selected]<=0) return;
-    // 도달했으면 바로 심고, 아니면 대기 액션으로 등록
-    if(distancePlayerTo(center) <= ARRIVE_DIST) {
-      plantAt(idx, e.currentTarget);
-    } else {
-      pendingAction = { type:'plant', idx };
-    }
+    if(distancePlayerTo(center) <= ARRIVE_DIST) plantAt(idx, e.currentTarget);
+    else pendingAction = {type:'plant', idx};
   } else if(t.phase==='ready'){
-    if(distancePlayerTo(center) <= ARRIVE_DIST) {
-      harvestAt(idx, e.currentTarget);
-    } else {
-      pendingAction = { type:'harvest', idx };
-    }
+    if(distancePlayerTo(center) <= ARRIVE_DIST) harvestAt(idx, e.currentTarget);
+    else pendingAction = {type:'harvest', idx};
   }
 }
-function distancePlayerTo(pt){ return Math.hypot(player.x - pt.x, player.y - pt.y); }
-
 function plantAt(idx, el){
   const t=state.tiles[idx];
   if(t.phase!=='empty') return;
@@ -374,15 +392,12 @@ function plantAt(idx, el){
   applyTileStyle(el,t); refreshUI();
 }
 function harvestAt(idx, el){
-  const t=state.tiles[idx];
-  if(t.phase!=='ready') return;
-  const crop=CROPS[t.cropId];
-  state.money += crop.sellPrice;
+  const t=state.tiles[idx]; if(t.phase!=='ready') return;
+  const crop=CROPS[t.cropId]; state.money+=crop.sellPrice;
   t.cropId=null; t.grown=0; t.phase='empty';
   applyTileStyle(el,t); refreshUI();
 }
 function performPendingAction(){
-  if(!pendingAction) return;
   const el = tileEl(pendingAction.idx);
   if(pendingAction.type==='plant') plantAt(pendingAction.idx, el);
   else if(pendingAction.type==='harvest') harvestAt(pendingAction.idx, el);
