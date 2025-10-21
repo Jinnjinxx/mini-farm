@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>미니 농사 (모바일 최적화)</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#121820;
+    --panel-2:#18202a;
+    --text:#e8eef6;
+    --accent:#7bd88f;
+    --accent-2:#74b9ff;
+    --soil:#b08b67;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color: transparent}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family: -apple-system, BlinkMacSystemFont, "Apple SD 산돌고딕 Neo", "Malgun Gothic", Segoe UI, Roboto, Noto Sans, sans-serif}
+  .wrap{display:grid;grid-template-rows:auto 1fr auto;gap:10px;max-width:900px;margin:0 auto;padding:10px}
+  .topbar{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));border:1px solid #23303c;border-radius:14px;
+    padding:10px;position:sticky;top:0;z-index:10;
+  }
+  .pill{padding:8px 12px;border-radius:999px;background:#0c1218;border:1px solid #23303c;white-space:nowrap;font-size:14px}
+  .grow{flex:1}
+  .btn{
+    appearance:none;border:1px solid #2a3947;background:#0c1218;color:var(--text);
+    padding:12px 14px;border-radius:12px;cursor:pointer;transition:transform .02s ease, opacity .2s ease;
+    font-size:16px;line-height:1;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-accent{background:var(--accent-2);color:#071223;border-color:#3a6ea5;font-weight:600}
+  .btn-house{background:var(--accent);color:#06230e;border-color:#2f7c50;font-weight:700}
+  .board-wrap{display:grid;grid-template-columns: 1fr;gap:10px;min-height:0}
+  .board{
+    background:#0c1015;border:1px solid #23303c;border-radius:14px;padding:10px;min-height:0;display:grid;place-items:center;
+  }
+  /* 모바일에서 타일을 손가락으로 누르기 좋게 크기 증가 */
+  .grid{
+    display:grid;grid-template-columns: repeat(20, 1fr);gap:4px;
+    width:min(96vw, 820px);aspect-ratio:1/1;
+    touch-action: manipulation;
+  }
+  @media (max-width: 420px){
+    .grid{gap:3px}
+  }
+  .tile{
+    border:1px solid #3a2f25;border-radius:6px;background:var(--soil);
+    display:grid;place-items:center;user-select:none;cursor:pointer;transition:filter .15s ease, transform .02s;
+    min-width: calc(96vw / 20 - 3px);
+    min-height: calc(96vw / 20 - 3px);
+  }
+  .tile:active{transform:translateY(1px)}
+  .tile[data-state="empty"]{filter:saturate(.9) brightness(.95)}
+  .tile[data-state="growing"]{filter:saturate(1.05)}
+  .tile[data-state="ready"]{box-shadow: inset 0 0 0 2px rgba(255,255,255,.09), 0 0 0 2px rgba(255,255,255,.03)}
+  .legend{background:linear-gradient(180deg, var(--panel), var(--panel-2));border:1px solid #23303c;border-radius:14px;padding:12px}
+  .legend h3{margin:0 0 8px 0;font-size:16px}
+  .row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+  .dot{width:16px;height:16px;border-radius:4px;border:1px solid #0003}
+  .dot.tomato{background:#e74c3c}
+  .dot.potato{background:#d3a16b}
+  .small{font-size:13px;color:#9fb0c2}
+  .shop{display:none;position:fixed;inset:0;backdrop-filter: blur(3px);background:rgba(0,0,0,.45);place-items:center;z-index:50}
+  .shop .card{background:#0f141a;border:1px solid #2f3945;border-radius:16px;padding:16px;max-width:420px;width:calc(100% - 24px)}
+  .shop .card h2{margin:0 0 12px 0;font-size:18px}
+  .shop .card .item{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:10px;border:1px dashed #2b3641;border-radius:12px}
+  .shop .card .item .name{display:flex;align-items:center;gap:10px}
+  .actions{display:flex;gap:8px;justify-content:space-between;margin-top:10px}
+  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#0b0f14;border:1px solid #2a3440;border-radius:6px;padding:3px 7px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="pill" id="day">Day 1</div>
+      <div class="pill" id="money">$ 200</div>
+      <div class="pill" id="seed">Seed: None | T:0 / P:0</div>
+      <div class="grow"></div>
+      <button class="btn btn-accent" id="btnShop">가판대</button>
+      <button class="btn btn-house" id="btnNext">🏠 다음날</button>
+    </div>
+
+    <div class="board-wrap">
+      <div class="board">
+        <div id="grid" class="grid" aria-label="20x20 밭"></div>
+      </div>
+      <div class="legend">
+        <h3>도움말</h3>
+        <div class="row"><span class="kbd">탭</span> 빈 칸 → 선택 씨앗 심기</div>
+        <div class="row"><span class="kbd">탭</span> 수확 상태 → 수확 &amp; 돈 획득</div>
+        <div class="row small">가판대에서 씨앗 구매 시 자동 선택</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shop Modal -->
+  <div class="shop" id="shop">
+    <div class="card">
+      <h2>가판대</h2>
+      <div class="item">
+        <div class="name"><div class="dot tomato"></div><div><strong>토마토 씨앗</strong><div class="small">성장 3일 · 판매 $30</div></div></div>
+        <button class="btn" data-buy="tomato">구매 $10</button>
+      </div>
+      <div class="item">
+        <div class="name"><div class="dot potato"></div><div><strong>감자 씨앗</strong><div class="small">성장 5일 · 판매 $50</div></div></div>
+        <button class="btn" data-buy="potato">구매 $15</button>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btnCloseShop">닫기</button>
+        <button class="btn btn-accent" id="btnSelectNone">씨앗 선택 해제</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// iOS 더블탭 줌 방지(대부분 최신 사파리에서는 필요없지만 안전하게)
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+// ---------- 데이터 ----------
+const CROPS = {
+  tomato:  { id:'tomato',  name:'Tomato',  growDays:3, seedPrice:10, sellPrice:30, color:'#e74c3c' },
+  potato:  { id:'potato',  name:'Potato',  growDays:5, seedPrice:15, sellPrice:50, color:'#d3a16b' },
+};
+let state = {
+  day: 1,
+  money: 200,
+  selected: null,
+  seeds: { tomato: 0, potato: 0 },
+  tiles: []
+};
+
+// ---------- 엘리먼트 ----------
+const $day = document.getElementById('day');
+const $money = document.getElementById('money');
+const $seed = document.getElementById('seed');
+const $grid = document.getElementById('grid');
+const $shop = document.getElementById('shop');
+const $btnShop = document.getElementById('btnShop');
+const $btnNext = document.getElementById('btnNext');
+const $btnCloseShop = document.getElementById('btnCloseShop');
+const $btnSelectNone = document.getElementById('btnSelectNone');
+
+// ---------- 초기화 ----------
+function init(){
+  state.tiles = Array.from({length: 20*20}, () => ({ cropId:null, grown:0, phase:'empty' }));
+  const frag = document.createDocumentFragment();
+  for (let i=0;i<400;i++){
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.setAttribute('data-idx', i);
+    applyTileStyle(tile, state.tiles[i]);
+    tile.addEventListener('click', onTileTap, {passive:true});
+    // 터치 반응 보강
+    tile.addEventListener('touchstart', ()=> tile.classList.add('tapped'), {passive:true});
+    tile.addEventListener('touchend', ()=> tile.classList.remove('tapped'), {passive:true});
+    frag.appendChild(tile);
+  }
+  $grid.appendChild(frag);
+  refreshUI();
+}
+document.addEventListener('DOMContentLoaded', init);
+
+// ---------- UI ----------
+function refreshUI(){
+  $day.textContent = `Day ${state.day}`;
+  $money.textContent = `$ ${state.money}`;
+  const s = state.selected ? CROPS[state.selected].name : 'None';
+  $seed.textContent = `Seed: ${s} | T:${state.seeds.tomato} / P:${state.seeds.potato}`;
+}
+
+function tileEl(i){ return $grid.children[i]; }
+
+function applyTileStyle(el, data){
+  el.dataset.state = data.phase;
+  if (data.phase === 'empty'){
+    el.style.background = getComputedStyle(document.documentElement).getPropertyValue('--soil');
+    el.style.borderColor = '#3a2f25';
+  } else if (data.phase === 'growing'){
+    el.style.background = 'linear-gradient(180deg, var(--soil) 0%, #6fbf73 100%)';
+    el.style.borderColor = '#2d4c33';
+  } else if (data.phase === 'ready'){
+    const col = data.cropId === 'tomato' ? CROPS.tomato.color : CROPS.potato.color;
+    el.style.background = col;
+    el.style.borderColor = '#00000055';
+  }
+}
+
+// ---------- 상점 ----------
+$btnShop.addEventListener('click', ()=> $shop.style.display = 'grid');
+$btnCloseShop.addEventListener('click', ()=> $shop.style.display = 'none');
+$btnSelectNone.addEventListener('click', ()=> { state.selected = null; refreshUI(); });
+$shop.addEventListener('click', (e)=>{
+  if (e.target === $shop) $shop.style.display = 'none';
+  const btn = e.target.closest('[data-buy]');
+  if (!btn) return;
+  const id = btn.getAttribute('data-buy');
+  const crop = CROPS[id];
+  if (state.money >= crop.seedPrice){
+    state.money -= crop.seedPrice;
+    state.seeds[id]++;
+    state.selected = id;
+    refreshUI();
+  } else {
+    btn.animate([{transform:'scale(1)'}, {transform:'scale(0.96)'}, {transform:'scale(1)'}], {duration:150});
+  }
+});
+
+// ---------- 다음날 ----------
+$btnNext.addEventListener('click', ()=>{
+  state.day++;
+  for (let i=0;i<state.tiles.length;i++){
+    const t = state.tiles[i];
+    if (t.phase === 'growing' && t.cropId){
+      t.grown++;
+      const need = CROPS[t.cropId].growDays;
+      if (t.grown >= need){
+        t.phase = 'ready';
+      }
+      applyTileStyle(tileEl(i), t);
+    }
+  }
+  refreshUI();
+});
+
+// ---------- 타일 탭 ----------
+function onTileTap(e){
+  const idx = +e.currentTarget.dataset.idx;
+  const t = state.tiles[idx];
+  if (t.phase === 'empty'){
+    if (!state.selected) return;
+    if (state.seeds[state.selected] <= 0) return;
+    state.seeds[state.selected]--;
+    t.cropId = state.selected;
+    t.grown = 0;
+    t.phase = 'growing';
+    applyTileStyle(e.currentTarget, t);
+    refreshUI();
+  } else if (t.phase === 'ready'){
+    const crop = CROPS[t.cropId];
+    state.money += crop.sellPrice;
+    t.cropId = null; t.grown = 0; t.phase = 'empty';
+    applyTileStyle(e.currentTarget, t);
+    refreshUI();
+  }
+}
+</script>
+</body>
+</html>
