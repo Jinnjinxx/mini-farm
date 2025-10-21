@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0f14"/>
-<title>미니 농사 (PWA)</title>
+<title>미니 농사 9×9 (PWA)</title>
 <style>
   :root{--bg:#0b0f14;--panel:#121820;--panel-2:#18202a;--text:#e8eef6;--accent:#7bd88f;--accent-2:#74b9ff;--soil:#b08b67}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -18,11 +18,14 @@
   .btn:active{transform:translateY(1px)}
   .btn-accent{background:var(--accent-2);color:#071223;border-color:#3a6ea5;font-weight:600}
   .btn-house{background:var(--accent);color:#06230e;border-color:#2f7c50;font-weight:700}
+  .seed-select{display:flex;gap:10px;align-items:center;background:#0c1218;border:1px solid #23303c;border-radius:12px;padding:6px 10px}
+  .seed-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;border:1px solid #2a3947;background:#0b0f14}
+  .seed-item input{width:18px;height:18px}
+  .seed-count{font-size:12px;color:#9fb0c2}
   .board-wrap{display:grid;grid-template-columns:1fr;gap:10px;min-height:0}
   .board{background:#0c1015;border:1px solid #23303c;border-radius:14px;padding:10px;display:grid;place-items:center}
-  .grid{display:grid;grid-template-columns:repeat(20,1fr);gap:4px;width:min(96vw,820px);aspect-ratio:1/1;touch-action:manipulation}
-  @media (max-width:420px){.grid{gap:3px}}
-  .tile{border:1px solid #3a2f25;border-radius:6px;background:var(--soil);display:grid;place-items:center;user-select:none;cursor:pointer;transition:filter .15s,transform .02s;min-width:calc(96vw/20 - 3px);min-height:calc(96vw/20 - 3px)}
+  .grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;width:min(96vw,640px);aspect-ratio:1/1;touch-action:manipulation}
+  .tile{border:1px solid #3a2f25;border-radius:6px;background:var(--soil);display:grid;place-items:center;user-select:none;cursor:pointer;transition:filter .15s,transform .02s;min-width:calc(96vw/9 - 5px);min-height:calc(96vw/9 - 5px)}
   .tile:active{transform:translateY(1px)}
   .tile[data-state="empty"]{filter:saturate(.9) brightness(.95)}
   .tile[data-state="growing"]{filter:saturate(1.05)}
@@ -47,7 +50,18 @@
     <div class="topbar">
       <div class="pill" id="day">Day 1</div>
       <div class="pill" id="money">$ 200</div>
-      <div class="pill" id="seed">Seed: None | T:0 / P:0</div>
+      <div class="seed-select" id="seedSelect">
+        <label class="seed-item">
+          <input type="radio" name="seed" value="tomato" id="radioTomato">
+          <span>토마토</span>
+          <span class="seed-count" id="countTomato">0개</span>
+        </label>
+        <label class="seed-item">
+          <input type="radio" name="seed" value="potato" id="radioPotato">
+          <span>감자</span>
+          <span class="seed-count" id="countPotato">0개</span>
+        </label>
+      </div>
       <div class="grow"></div>
       <button class="btn btn-accent" id="btnShop">가판대</button>
       <button class="btn btn-house" id="btnNext">🏠 다음날</button>
@@ -55,13 +69,13 @@
 
     <div class="board-wrap">
       <div class="board">
-        <div id="grid" class="grid" aria-label="20x20 밭"></div>
+        <div id="grid" class="grid" aria-label="9x9 밭"></div>
       </div>
       <div class="legend">
         <h3>도움말</h3>
-        <div class="row"><span class="kbd">탭</span> 빈 칸 → 선택 씨앗 심기</div>
+        <div class="row"><span class="kbd">탭</span> 빈 칸 → **선택한 씨앗** 심기</div>
         <div class="row"><span class="kbd">탭</span> 수확 상태 → 수확 &amp; 돈 획득</div>
-        <div class="row small">가판대에서 씨앗 구매 시 자동 선택</div>
+        <div class="row small">가판대에서 구매하면 씨앗 수가 늘어나고, 상단에서 **토마토/감자**를 선택 후 심습니다.</div>
       </div>
     </div>
   </div>
@@ -79,7 +93,6 @@
       </div>
       <div class="actions">
         <button class="btn" id="btnCloseShop">닫기</button>
-        <button class="btn btn-accent" id="btnSelectNone">씨앗 선택 해제</button>
       </div>
     </div>
   </div>
@@ -95,20 +108,23 @@ const CROPS={tomato:{id:'tomato',name:'Tomato',growDays:3,seedPrice:10,sellPrice
 let state={day:1,money:200,selected:null,seeds:{tomato:0,potato:0},tiles:[]};
 
 // Elements
-const $day=document.getElementById('day'),$money=document.getElementById('money'),$seed=document.getElementById('seed'),$grid=document.getElementById('grid'),$shop=document.getElementById('shop'),$btnShop=document.getElementById('btnShop'),$btnNext=document.getElementById('btnNext'),$btnCloseShop=document.getElementById('btnCloseShop'),$btnSelectNone=document.getElementById('btnSelectNone');
+const $day=document.getElementById('day'),$money=document.getElementById('money'),$grid=document.getElementById('grid'),$shop=document.getElementById('shop'),$btnShop=document.getElementById('btnShop'),$btnNext=document.getElementById('btnNext'),$btnCloseShop=document.getElementById('btnCloseShop');
+const $radioTomato=document.getElementById('radioTomato'),$radioPotato=document.getElementById('radioPotato');
+const $countTomato=document.getElementById('countTomato'),$countPotato=document.getElementById('countPotato');
 
 // Init
 function init(){
-  state.tiles=Array.from({length:400},()=>({cropId:null,grown:0,phase:'empty'}));
+  state.tiles=Array.from({length:81},()=>({cropId:null,grown:0,phase:'empty'}));
   const frag=document.createDocumentFragment();
-  for(let i=0;i<400;i++){
+  for(let i=0;i<81;i++){
     const tile=document.createElement('div');
     tile.className='tile'; tile.dataset.idx=i;
     applyTileStyle(tile,state.tiles[i]);
     tile.addEventListener('click', onTileTap, {passive:true});
     frag.appendChild(tile);
   }
-  $grid.appendChild(frag); refreshUI();
+  $grid.appendChild(frag); 
+  refreshUI();
 }
 document.addEventListener('DOMContentLoaded', init);
 
@@ -116,8 +132,12 @@ document.addEventListener('DOMContentLoaded', init);
 function refreshUI(){
   $day.textContent=`Day ${state.day}`;
   $money.textContent=`$ ${state.money}`;
-  const s=state.selected?CROPS[state.selected].name:'None';
-  $seed.textContent=`Seed: ${s} | T:${state.seeds.tomato} / P:${state.seeds.potato}`;
+  $countTomato.textContent = `${state.seeds.tomato}개`;
+  $countPotato.textContent = `${state.seeds.potato}개`;
+
+  if(state.selected==='tomato'){ $radioTomato.checked = true; $radioPotato.checked=false; }
+  else if(state.selected==='potato'){ $radioPotato.checked = true; $radioTomato.checked=false; }
+  else { $radioTomato.checked=false; $radioPotato.checked=false; }
 }
 function tileEl(i){return $grid.children[i];}
 function applyTileStyle(el,data){
@@ -127,16 +147,25 @@ function applyTileStyle(el,data){
   else {const col=data.cropId==='tomato'?CROPS.tomato.color:CROPS.potato.color;el.style.background=col;el.style.borderColor='#00000055'}
 }
 
+// Seed selection
+$radioTomato.addEventListener('change', ()=> { if($radioTomato.checked) state.selected='tomato'; });
+$radioPotato.addEventListener('change', ()=> { if($radioPotato.checked) state.selected='potato'; });
+
 // Shop
 $btnShop.addEventListener('click',()=> $shop.style.display='grid');
+if($btnCloseShop) $btnCloseShop.addEventListener('click',()=> $shop.style.display='none');
 $shop.addEventListener('click',(e)=>{
   if(e.target===$shop) $shop.style.display='none';
   const btn=e.target.closest('[data-buy]'); if(!btn) return;
   const id=btn.getAttribute('data-buy'), crop=CROPS[id];
-  if(state.money>=crop.seedPrice){state.money-=crop.seedPrice;state.seeds[id]++;state.selected=id;refreshUI();}
+  if(state.money>=crop.seedPrice){
+    state.money-=crop.seedPrice;
+    state.seeds[id]++;
+    refreshUI();
+  } else {
+    btn.animate([{transform:'scale(1)'},{transform:'scale(0.96)'},{transform:'scale(1)'}],{duration:150});
+  }
 });
-if($btnCloseShop) $btnCloseShop.addEventListener('click',()=> $shop.style.display='none');
-if($btnSelectNone) $btnSelectNone.addEventListener('click',()=>{state.selected=null;refreshUI();});
 
 // Next Day
 $btnNext.addEventListener('click',()=>{
@@ -158,7 +187,8 @@ function onTileTap(e){
   if(t.phase==='empty'){
     if(!state.selected) return;
     if(state.seeds[state.selected]<=0) return;
-    state.seeds[state.selected]--; t.cropId=state.selected; t.grown=0; t.phase='growing';
+    state.seeds[state.selected]--;
+    t.cropId=state.selected; t.grown=0; t.phase='growing';
     applyTileStyle(e.currentTarget,t); refreshUI();
   } else if(t.phase==='ready'){
     const crop=CROPS[t.cropId]; state.money+=crop.sellPrice;
